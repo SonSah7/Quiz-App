@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz</title>
+    <link rel="stylesheet" href="index.css" type="text/css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            background-color: #f0f0f5;
+            color: #333;
+        }
+        .header {
+            padding: 20px;
+            text-align: center;
+            background-color: #007bff;
+            color: white;
+            border-bottom: 2px solid #0056b3;
+        }
+        h1 {
+            font-size: 2rem;
+            margin: 0;
+        }
+        .header p {
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+        .quiz-container {
+            max-width: 700px;
+            margin: 30px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .question {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+        .answers label {
+            display: block;
+            background-color: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .answers input {
+            margin-right: 10px;
+        }
+        .answers label:hover {
+            background-color: #f1f1f1;
+        }
+        .slide {
+            display: none;
+        }
+        .active-slide {
+            display: block;
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .submit {
+            width: 100%;
+            background-color: #28a745;
+        }
+        .submit:hover {
+            background-color: #218838;
+        }
+        .results {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-top: 20px;
+            color: #28a745;
+        }
+        .correct {
+            background-color: lightgreen !important;
+        }
+        .incorrect {
+            background-color: #f08080 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Quiz</h1>
+        <p>Think carefully, but don't delay!</p>
+    </div>
+    
+    <div class="quiz-container">
+        <div id="quiz"></div>
+        <div class="button-container">
+            <button id="previous" style="display: none;">Previous</button>
+            <button id="next">Next</button>
+        </div>
+        <p class="button-container">
+            <button id="submit" class="submit" style="display: none;">Submit Quiz</button>
+        </p>
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        (function() {
+            // Functions
+            function buildQuiz() {
+                const output = [];
+                myQuestions.forEach((currentQuestion, questionNumber) => {
+                    const answers = [];
+                    for (letter in currentQuestion.answers) {
+                        answers.push(
+                            `<label>
+                                <input type="radio" name="question${questionNumber}" value="${letter}">
+                                ${letter} : ${currentQuestion.answers[letter]}
+                            </label>`
+                        );
+                    }
+                    output.push(
+                        `<div class="slide">
+                            <div class="question">${currentQuestion.question}</div>
+                            <div class="answers">${answers.join("")}</div>
+                        </div>`
+                    );
+                });
+                quizContainer.innerHTML = output.join('');
+            }
+
+            function checkAnswer(event) {
+                const selected = event.target;
+                const questionNumber = selected.name.replace("question", "");
+                const currentQuestion = myQuestions[questionNumber];
+                const answerContainers = quizContainer.querySelectorAll('.answers')[questionNumber];
+                
+                // Disable all radio buttons after the first selection
+                const radioButtons = answerContainers.querySelectorAll("input");
+                radioButtons.forEach(button => {
+                    button.disabled = true; // Disable all radio buttons
+                });
+
+                // Reset all answers' styles
+                answerContainers.querySelectorAll("label").forEach(label => {
+                    label.classList.remove("correct", "incorrect");
+                });
+                
+                if (selected.value === currentQuestion.correctAnswer) {
+                    // Correct answer
+                    selected.parentElement.classList.add("correct");
+                } else {
+                    // Incorrect answer
+                    selected.parentElement.classList.add("incorrect");
+                }
+            }
+
+            function showResults() {
+                const answerContainers = quizContainer.querySelectorAll('.answers');
+                let numCorrect = 0;
+                myQuestions.forEach((currentQuestion, questionNumber) => {
+                    const answerContainer = answerContainers[questionNumber];
+                    const selector = `input[name=question${questionNumber}]:checked`;
+                    const userAnswer = (answerContainer.querySelector(selector) || {}).value;
+                    if (userAnswer === currentQuestion.correctAnswer) {
+                        numCorrect++;
+                    }
+                });
+                resultsContainer.innerHTML = `You got ${numCorrect} out of ${myQuestions.length} correct!`;
+            }
+
+            function showSlide(n) {
+                slides[currentSlide].classList.remove('active-slide');
+                slides[n].classList.add('active-slide');
+                currentSlide = n;
+                previousButton.style.display = currentSlide === 0 ? 'none' : 'inline-block';
+                nextButton.style.display = currentSlide === slides.length - 1 ? 'none' : 'inline-block';
+                submitButton.style.display = currentSlide === slides.length - 1 ? 'inline-block' : 'none';
+            }
+
+            function showNextSlide() {
+                showSlide(currentSlide + 1);
+            }
+
+            function showPreviousSlide() {
+                showSlide(currentSlide - 1);
+            }
+
+            // Variables
+            const quizContainer = document.getElementById('quiz');
+            const resultsContainer = document.getElementById('results');
+            const submitButton = document.getElementById('submit');
+            const previousButton = document.getElementById("previous");
+            const nextButton = document.getElementById("next");
+            let currentSlide = 0;
+
+            const myQuestions = [
+                {
+                    question: "Who invented JavaScript?",
+                    answers: {
+                        a: "Douglas Crockford",
+                        b: "Sheryl Sandberg",
+                        c: "Brendan Eich"
+                    },
+                    correctAnswer: "c"
+                },
+                {
+                    question: "Which one of these is a JavaScript package manager?",
+                    answers: {
+                        a: "Node.js",
+                        b: "TypeScript",
+                        c: "npm"
+                    },
+                    correctAnswer: "c"
+                },
+                {
+                    question: "Which tool can you use to ensure code quality?",
+                    answers: {
+                        a: "Angular",
+                        b: "jQuery",
+                        c: "RequireJS",
+                        d: "ESLint"
+                    },
+                    correctAnswer: "d"
+                }
+            ];
+
+            buildQuiz();
+            const slides = document.querySelectorAll(".slide");
+            showSlide(currentSlide);
+
+            nextButton.addEventListener("click", showNextSlide);
+            previousButton.addEventListener("click", showPreviousSlide);
+            submitButton.addEventListener('click', showResults);
+            quizContainer.addEventListener('change', checkAnswer); // Event listener to handle answer selection
+        })();
+    </script>
+</body>
+</html>

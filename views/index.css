@@ -1,0 +1,11 @@
+.button{
+  position:absolute;
+  transition: .5s ease;
+  top: 240%;
+  right: 40px; 
+}
+.submit{
+  transition: .5s ease;
+  top: 240%;
+  right: 40px; 
+}
